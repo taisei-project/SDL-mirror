@@ -1,0 +1,104 @@
+option(
+    'enable_threads',
+    type : 'boolean',
+    value : true,
+    description : 'Enable threads support'
+)
+
+option(
+    'enable_atomic',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Atomic subsystem'
+)
+
+option(
+    'enable_audio',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Audio subsystem'
+)
+
+option(
+    'enable_cpuinfo',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the CPU Info subsystem'
+)
+
+option(
+    'enable_events',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Events subsystem'
+)
+
+option(
+    'enable_file',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the File subsystem'
+)
+
+option(
+    'enable_joystick',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Joystick subsystem'
+)
+
+option(
+    'enable_haptic',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Haptic subsystem'
+)
+
+option(
+    'enable_sensor',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Sensor subsystem'
+)
+
+option(
+    'enable_loadso',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Shared Object Loading subsystem'
+)
+
+option(
+    'enable_render',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Renderer subsystem'
+)
+
+option(
+    'enable_timers',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Timers subsystem'
+)
+
+option(
+    'enable_video',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Video subsystem'
+)
+
+option(
+    'enable_power',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Power subsystem'
+)
+
+option(
+    'enable_filesystem',
+    type : 'boolean',
+    value : true,
+    description : 'Enable the Filesystem subsystem'
+)
