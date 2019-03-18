@@ -32,6 +32,11 @@
 #include "../core/windows/SDL_windows.h"    // For GetDoubleClickTime()
 #endif
 
+#ifdef __WIN32__
+#include <windows.h>
+#include <winuser.h>
+#endif
+
 /* #define DEBUG_MOUSE */
 
 /* The mouse state */
