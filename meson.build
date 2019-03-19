@@ -355,7 +355,8 @@ if platform_is_linux
     cdata.set('SDL_JOYSTICK_LINUX', 1)
     cdata.set('SDL_INPUT_LINUXEV', 1)
     cdata.set('SDL_INPUT_LINUXKD', 1)
-    cdata.set('SDL_HAPTIC_LINUX', 1)
+    if cdata.get('SDL_HAPTIC_DISABLED', 0) == 0
+        cdata.set('SDL_HAPTIC_LINUX', 1) endif
     cdata.set('SDL_TIMER_UNIX', 1)
     cdata.set('SDL_FILESYSTEM_UNIX', 1)
     cdata.set('SDL_DYNAMIC_API', 1)
@@ -367,7 +368,6 @@ elif platform_is_windows
     cdata.set('SDL_TIMER_WINDOWS', 1)
     cdata.set('SDL_FILESYSTEM_WINDOWS', 1)
     cdata.set('SDL_DYNAMIC_API', 1)
-    cdata.set('SDL_HAPTIC_DINPUT', 1)
     cdata.set('SDL_POWER_WINDOWS', 1)
     cdata.set('SDL_LOADSO_WINDOWS', 1)
     cdata.set('SDL_VIDEO_DRIVER_WINDOWS', 1)
