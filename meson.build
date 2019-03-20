@@ -1,8 +1,7 @@
 project('sdl2', 'c',
-  version : '2.0.9',
-  license : 'zlib',
-  meson_version : '>=0.47.0',
-  default_options: ['c_std=gnu99']
+    version : '2.0.9',
+    license : 'zlib',
+    meson_version : '>=0.48.0',
 )
 
 # Based on https://github.com/mesonbuild/sdl2/blob/2.0.3/meson.build
@@ -60,37 +59,110 @@ false)
 
 # END platform detection logic
 
-thread_dep = dependency('threads', required : false)
-use_threads = thread_dep.found() and get_option('enable_threads')
+opt_atomic = get_option('use_atomic')
+opt_audio = get_option('use_audio')
+opt_cpuinfo = get_option('use_cpuinfo')
+opt_events = get_option('use_events')
+opt_file = get_option('use_file')
+opt_filesystem = get_option('use_filesystem')
+opt_haptic = get_option('use_haptic')
+opt_joystick = get_option('use_joystick')
+opt_loadso = get_option('use_loadso')
+opt_power = get_option('use_power')
+opt_render = get_option('use_render')
+opt_sensor = get_option('use_sensor')
+opt_threads = get_option('use_threads')
+opt_timers = get_option('use_timers')
+opt_video = get_option('use_video')
 
-if platform_is_emscripten
-    use_threads = false
+opt_video_x11 = get_option('use_video_x11')
+opt_video_wayland = get_option('use_video_wayland')
+opt_video_opengl = get_option('use_video_opengl')
+opt_video_openglesv2 = get_option('use_video_openglesv2')
+opt_video_vulkan = get_option('use_video_vulkan')
+
+if opt_video.disabled()
+    opt_video_x11 = opt_video
+    opt_video_wayland = opt_video
+    opt_video_opengl = opt_video
+    opt_video_openglesv2 = opt_video
+    opt_video_vulkan = opt_video
+    opt_render = opt_video
 endif
 
-core_deps = [
-    cc.find_library('m', required : false),
-    cc.find_library('dl', required : false),
-    thread_dep,
-]
+opt_audio_alsa = get_option('use_audio_alsa')
+opt_audio_pulseaudio = get_option('use_audio_pulseaudio')
 
-alsa_dep = dependency('alsa', required : false)
-egl_dep = dependency('egl', required : false)
-gl_dep = dependency('gl', required : false)
-glesv2_dep = dependency('glesv2', required : false)
-libpulse_simple_dep = dependency('libpulse-simple', required : false)
-vulkan_dep = dependency('vulkan', required : false)
-x11_dep = dependency('x11', required : false)
-xext_dep = dependency('xext', required : false)
-xi_dep = dependency('xi', required : false)
-xinerama_dep = dependency('xinerama', required : false)
-xkbcommon_dep = dependency('xkbcommon', required : false)
-xrandr_dep = dependency('xrandr', required : false)
+if opt_audio.disabled()
+    opt_audio_alsa = opt_audio
+    opt_audio_pulseaudio = opt_audio
+endif
+
+# BEGIN awful shitfucked GL hacks
+
+khronos_dep = declare_dependency(
+    include_directories : include_directories(join_paths('src', 'video', 'khronos'))
+)
+
+dummy_found_dep = declare_dependency()
+dummy_notfound_dep = dependency('lalala this dependency does not exist lalala', required : false)
+
+if dummy_notfound_dep.found()
+    error('You are not funny')
+endif
+
+gl_req_hack = opt_video_opengl.enabled() ? false : opt_video_opengl
+gles2_req_hack = opt_video_openglesv2.enabled() ? false : opt_video_openglesv2
+
+#if opt_video_opengl.disabled()
+    #gl_dep = dummy_notfound_dep
+#else
+    # just assume we can use it... :/
+    #gl_dep = dummy_found_dep
+#endif
+
+gl_dep = dependency('gl', required : opt_video_opengl)
+
+glesv2_dep = dependency('glesv2', required : gles2_req_hack)
+if not glesv2_dep.found() and not opt_video_openglesv2.disabled()
+    # we have the headers, we'll load the lib dynamically (which might be something like ANGLE)
+    glesv2_dep = khronos_dep
+    message('Using embedded GLESv2 headers')
+endif
+
+egl_dep = dependency('egl', required : opt_video_openglesv2)
+if not egl_dep.found()
+    egl_dep = dependency('egl', required : opt_video_wayland)
+endif
+if not egl_dep.found() and not opt_video_openglesv2.disabled()
+    # we have the headers, we'll load the lib dynamically (which might be something like ANGLE)
+    egl_dep = khronos_dep
+    message('Using embedded EGL headers')
+endif
+
+# we don't want to link against these!
+gl_dep = gl_dep.partial_dependency(compile_args : true, includes : true, sources : true)
+glesv2_dep = glesv2_dep.partial_dependency(compile_args : true, includes : true, sources : true)
 
 gl_deps = [
     egl_dep,
     gl_dep,
     glesv2_dep,
 ]
+
+# END awful shitfucked GL hacks
+
+alsa_dep = dependency('alsa', required : opt_audio_alsa)
+libpulse_simple_dep = dependency('libpulse-simple', required : opt_audio_pulseaudio)
+vulkan_dep = dependency('vulkan', required : opt_video_vulkan)
+x11_dep = dependency('x11', required : opt_video_x11)
+xext_dep = dependency('xext', required : opt_video_x11)
+xi_dep = dependency('xi', required : opt_video_x11)
+xinerama_dep = dependency('xinerama', required : opt_video_x11)
+xkbcommon_dep = dependency('xkbcommon', required : opt_video_wayland)
+xrandr_dep = dependency('xrandr', required : opt_video_x11)
+threads_dep = dependency('threads', required : opt_threads)
+iconv_dep = dependency('iconv', required : false)
 
 x11_deps = [
     x11_dep,
@@ -102,20 +174,20 @@ x11_deps = [
 
 wayland_found = true
 
-wayland_client_dep = dependency('wayland-client', required : false)
-wayland_cursor_dep = dependency('wayland-cursor', required : false)
-wayland_egl_dep = dependency('wayland-egl', required : false)
-wayland_protocols_dep = dependency('wayland-protocols', required : false)
-wayland_scanner_dep = dependency('wayland-scanner', required : false)
+wayland_client_dep = dependency('wayland-client', required : opt_video_wayland)
+wayland_cursor_dep = dependency('wayland-cursor', required : opt_video_wayland)
+wayland_egl_dep = dependency('wayland-egl', required : opt_video_wayland)
+wayland_protocols_dep = dependency('wayland-protocols', required : opt_video_wayland)
+wayland_scanner_dep = dependency('wayland-scanner', required : opt_video_wayland)
 
 if wayland_scanner_dep.found()
-    wayland_scanner = find_program(wayland_scanner_dep.get_pkgconfig_variable('wayland_scanner'))
+    wayland_scanner = find_program(wayland_scanner_dep.get_pkgconfig_variable('wayland_scanner'), required : opt_video_wayland)
 
     if not wayland_scanner.found()
-        wayland_scanner = find_program('wayland-scanner')
+        wayland_scanner = find_program('wayland-scanner', required : opt_video_wayland)
     endif
 else
-    wayland_scanner = find_program('wayland-scanner')
+    wayland_scanner = find_program('wayland-scanner', required : opt_video_wayland)
 endif
 
 if wayland_scanner.found()
@@ -143,63 +215,114 @@ else
     wayland_found = false
 endif
 
-cc = meson.get_compiler('c')
+core_deps = [
+    cc.find_library('m', required : false),
+    cc.find_library('dl', required : false),
+]
+
+extra_deps = []
+
+core_subsystems = {
+    'atomic'        : { 'opt' : opt_atomic,     'deps' : [], 'opt_deps' : [] },
+    'audio'         : { 'opt' : opt_audio,      'deps' : [], 'opt_deps' : [alsa_dep, libpulse_simple_dep] },
+    'cpuinfo'       : { 'opt' : opt_cpuinfo,    'deps' : [], 'opt_deps' : [] },
+    'events'        : { 'opt' : opt_events,     'deps' : [], 'opt_deps' : x11_deps + wayland_deps },
+    'file'          : { 'opt' : opt_file,       'deps' : [], 'opt_deps' : [] },
+    'filesystem'    : { 'opt' : opt_filesystem, 'deps' : [], 'opt_deps' : [] },
+    'haptic'        : { 'opt' : opt_haptic,     'deps' : [], 'opt_deps' : [] },
+    'joystick'      : { 'opt' : opt_joystick,   'deps' : [], 'opt_deps' : [] },
+    'loadso'        : { 'opt' : opt_loadso,     'deps' : [], 'opt_deps' : [] },
+    'power'         : { 'opt' : opt_power,      'deps' : [], 'opt_deps' : [] },
+    'render'        : { 'opt' : opt_render,     'deps' : [], 'opt_deps' : [vulkan_dep] + x11_deps + wayland_deps + gl_deps },
+    'sensor'        : { 'opt' : opt_sensor,     'deps' : [], 'opt_deps' : [] },
+    'threads'       : { 'opt' : opt_threads,    'deps' : [threads_dep], 'opt_deps' : [] },
+    'timers'        : { 'opt' : opt_timers,     'deps' : [], 'opt_deps' : [] },
+    'video'         : { 'opt' : opt_video,      'deps' : [], 'opt_deps' : [vulkan_dep] + x11_deps + wayland_deps + gl_deps },
+}
+
+enabled_subsystems = []
+
 cdata = configuration_data()
 
-if not get_option('enable_atomic')
-    cdata.set('SDL_ATOMIC_DISABLED', 1) endif
-if not get_option('enable_audio')
-    cdata.set('SDL_AUDIO_DISABLED', 1) endif
-if not get_option('enable_cpuinfo')
-    cdata.set('SDL_CPUINFO_DISABLED', 1) endif
-if not get_option('enable_events')
-    cdata.set('SDL_EVENTS_DISABLED', 1) endif
-if not get_option('enable_file')
-    cdata.set('SDL_FILE_DISABLED', 1) endif
-if not get_option('enable_filesystem')
-    cdata.set('SDL_FILESYSTEM_DISABLED', 1) endif
-if not get_option('enable_haptic')
-    cdata.set('SDL_HAPTIC_DISABLED', 1) endif
-if not get_option('enable_joystick')
-    cdata.set('SDL_JOYSTICK_DISABLED', 1) endif
-if not get_option('enable_loadso')
-    cdata.set('SDL_LOADSO_DISABLED', 1) endif
-if not get_option('enable_power')
-    cdata.set('SDL_POWER_DISABLED', 1) endif
-if not get_option('enable_render')
-    cdata.set('SDL_RENDER_DISABLED', 1) endif
-if not get_option('enable_sensor')
-    cdata.set('SDL_SENSOR_DISABLED', 1) endif
-if not get_option('enable_timers')
-    cdata.set('SDL_TIMERS_DISABLED', 1) endif
-if not get_option('enable_video')
-    cdata.set('SDL_VIDEO_DISABLED', 1) endif
-if not use_threads
-    cdata.set('SDL_THREADS_DISABLED', 1) endif
+foreach ss_name, subsystem : core_subsystems
+    ss_enabled = true
+
+    if not subsystem['opt'].disabled()
+        foreach dep : subsystem['deps']
+            if not dep.found()
+                warning('Subsystem "@0@" disabled due to missing dependency "@1@"'.format(ss_name, dep.name()))
+
+                if subsystem['opt'].enabled()
+                    error('Subsystem @0@ couldn\'t be enabled'.format(ss_name))
+                endif
+
+                ss_enabled = false
+            endif
+        endforeach
+    else
+        ss_enabled = false
+    endif
+
+    if ss_enabled
+        core_deps += subsystem['deps']
+
+        # We don't want disabled/not found deps on there
+        foreach dep : subsystem['opt_deps']
+            if dep.found() and not extra_deps.contains(dep)
+                extra_deps += dep
+            endif
+        endforeach
+
+        message('Subsystem "@0@" is ENABLED'.format(ss_name))
+        enabled_subsystems += ss_name
+    else
+        cdata.set('SDL_@0@_DISABLED'.format(ss_name.to_upper()), 1)
+        message('Subsystem "@0@" is DISABLED'.format(ss_name))
+    endif
+endforeach
+
+cc = meson.get_compiler('c')
 
 cdata.set('SIZEOF_VOIDP', cc.sizeof('void*'))
 
 check_headers = [
     'alloca.h',
+    'altivec.h',
+    'audioclient.h',
     'ctype.h',
+    'dbus/dbus.h',
+    'ddraw.h',
+    'dinput.h',
+    'dsound.h',
+    'dxgi.h',
+    'endpointvolume.h',
+    'fcitx/frontend.h',
     'float.h',
+    'ibus/ibus.h',
     'iconv.h',
+    'immintrin.h',
     'inttypes.h',
+    'libsamplerate.h',
+    'libudev.h',
+    'libunwind.h',
     'limits.h',
     'malloc.h',
     'math.h',
     'memory.h',
+    'mmdeviceapi.h',
+    'pthread.h',
+    'pthread_np.h',
+    'semaphore.h',
     'signal.h',
     'stdarg.h',
     'stdint.h',
     'stdio.h',
     'stdlib.h',
-    'strings.h',
     'string.h',
+    'strings.h',
     'sys/types.h',
     'wchar.h',
-    'pthread/np.h',
-    'libunwind.h',
+    'xinput.h',
 ]
 
 foreach h : check_headers
@@ -209,120 +332,129 @@ foreach h : check_headers
 endforeach
 
 check_functions = [
-    ['HAVE_MALLOC', 'malloc', '#include<stdlib.h>'],
-    ['HAVE_CALLOC', 'calloc', '#include<stdlib.h>'],
-    ['HAVE_REALLOC', 'realloc', '#include<stdlib.h>'],
-    ['HAVE_FREE', 'free', '#include<stdlib.h>'],
-    ['HAVE_ALLOCA', 'alloca', '#include<alloca.h>'],
-    ['HAVE_GETENV', 'getenv', '#include<stdlib.h>'],
-    ['HAVE_SETENV', 'setenv', '#include<stdlib.h>'],
-    ['HAVE_PUTENV', 'putenv', '#include<stdlib.h>'],
-    ['HAVE_UNSETENV', 'unsetenv', '#include<stdlib.h>'],
-    ['HAVE_QSORT', 'qsort', '#include<stdlib.h>'],
-    ['HAVE_ABS', 'abs', '#include<stdlib.h>'],
-    ['HAVE_BCOPY', 'bcopy', '#include<strings.h>'],
-    ['HAVE_MEMSET', 'memset', '#include<string.h>'],
-    ['HAVE_MEMCPY', 'memcpy', '#include<string.h>'],
-    ['HAVE_MEMMOVE', 'memmove', '#include<string.h>'],
-    ['HAVE_MEMCMP', 'memcmp', '#include<string.h>'],
-    ['HAVE_WCSLEN', 'wcslen', '#include<wchar.h>'],
-    ['HAVE_WCSLCPY', 'wcslcpy', '#include<wchar.h>'],
-    ['HAVE_WCSLCAT', 'wcslcat', '#include<wchar.h>'],
-    ['HAVE_WCSCMP', 'wcscmp', '#include<wchar.h>'],
-    ['HAVE_STRLEN', 'strlen', '#include<string.h>'],
-    ['HAVE_STRLCPY', 'strlcpy', '#include<string.h>'],
-    ['HAVE_STRLCAT', 'strlcat', '#include<string.h>'],
-    ['HAVE_STRDUP', 'strdup', '#include<string.h>'],
-    ['HAVE__STRREV', '_strrev', '#include<string.h>'],
-    ['HAVE__STRUPR', '_strupr', '#include<string.h>'],
-    ['HAVE__STRLWR', '_strlwr', '#include<string.h>'],
-    ['HAVE_INDEX', 'index', '#include<strings.h>'],
-    ['HAVE_RINDEX', 'rindex', '#include<strings.h>'],
-    ['HAVE_STRCHR', 'strchr', '#include<string.h>'],
-    ['HAVE_STRRCHR', 'strrchr', '#include<string.h>'],
-    ['HAVE_STRSTR', 'strstr', '#include<string.h>'],
-    ['HAVE_ITOA', 'itoa', '#include<stdlib.h>'],
-    ['HAVE__LTOA', '_ltoa', '#include<stlib.h>'],
-    ['HAVE__UITOA', '_uitoa', '#include<stdlib.h>'],
-    ['HAVE__ULTOA', '_ultoa', '#include<stdlib.h>'],
-    ['HAVE_STRTOL', 'strtol', '#include<stdlib.h>'],
-    ['HAVE_STRTOUL', 'strtoul', '#include<stdlib.h>'],
-    ['HAVE__I64TOA', '_i64toa', '#include<stdlib.h>'],
-    ['HAVE__UI64TOA', '_uit64toa', '#include<stdlib.h>'],
-    ['HAVE_STRTOLL', 'strtoll', '#include<stdlib.h>'],
-    ['HAVE_STRTOULL', 'strtoull', '#include<stdlib.h>'],
-    ['HAVE_STRTOD', 'strtod', '#include<stdlib.h>'],
-    ['HAVE_ATOI', 'atoi', '#include<stdlib.h>'],
-    ['HAVE_ATOF', 'atof', '#include<stdlib.h>'],
-    ['HAVE_STRCMP', 'strcmp', '#include<string.h>'],
-    ['HAVE_STRNCMP', 'strncmp', '#include<string.h>'],
-    ['HAVE__STRICMP', '_stricmp', '#include<string.h>'],
-    ['HAVE_STRCASECMP', 'strcasecmp', '#include<strings.h>'],
-    ['HAVE__STRNICMP', '_strnicmp', '#include<string.h>'],
-    ['HAVE_STRNCASECMP', 'strncasecmp', '#include<strings.h>'],
-    ['HAVE_SSCANF', 'sscanf', '#include<stdio.h>'],
-    ['HAVE_VSSCANF', 'vsscanf', '#include<stdio.h>'],
-    ['HAVE_SNPRINTF', 'snprintf', '#include<stdio.h>'],
-    ['HAVE_VSNPRINTF', 'vsnprintf', '#include<stdio.h>'],
-    ['HAVE_ATAN', 'atan', '#include<math.h>'],
-    ['HAVE_ATANF', 'atanf', '#include<math.h>'],
-    ['HAVE_ATAN2', 'atan2', '#include<math.h>'],
-    ['HAVE_ATAN2F', 'atan2f', '#include<math.h>'],
-    ['HAVE_ACOS', 'acos', '#include<math.h>'],
-    ['HAVE_ACOSF', 'acosf', '#include<math.h>'],
-    ['HAVE_ASIN', 'asin', '#include<math.h>'],
-    ['HAVE_ASINF', 'asinf', '#include<math.h>'],
-    ['HAVE_CEIL', 'ceil', '#include<math.h>'],
-    ['HAVE_CEIL', 'ceilf', '#include<math.h>'],
-    ['HAVE_COPYSIGN', 'copysign', '#include<math.h>'],
-    ['HAVE_COPYSIGNF', 'copysignf', '#include<math.h>'],
-    ['HAVE_COS', 'cos', '#include<math.h>'],
-    ['HAVE_COSF', 'cosf', '#include<math.h>'],
-    ['HAVE_EXP', 'exp', '#include<math.h>'],
-    ['HAVE_EXPF', 'expf', '#include<math.h>'],
-    ['HAVE_FABS', 'fabs', '#include<math.h>'],
-    ['HAVE_FABSF', 'fabsf', '#include<math.h>'],
-    ['HAVE_FLOOR', 'floor', '#include<math.h>'],
-    ['HAVE_FLOORF', 'floorf', '#include<math.h>'],
-    ['HAVE_FMOD', 'fmod', '#include<math.h>'],
-    ['HAVE_FMODF', 'fmodf', '#include<math.h>'],
-    ['HAVE_LOG', 'log', '#include<math.h>'],
-    ['HAVE_LOGF', 'logf', '#include<math.h>'],
-    ['HAVE_POW', 'pow', '#include<math.h>'],
-    ['HAVE_POWF', 'powf', '#include<math.h>'],
-    ['HAVE_SCALBN', 'scalbn', '#include<math.h>'],
-    ['HAVE_SCALBNF', 'scalbnf', '#include<math.h>'],
-    ['HAVE_SIN', 'sin', '#include<math.h>'],
-    ['HAVE_SINF', 'sinf', '#include<math.h>'],
-    ['HAVE_SQRT', 'sqrt', '#include<math.h>'],
-    ['HAVE_SQRTF', 'sqrtf', '#include<math.h>'],
-    ['HAVE_TANF', 'tan', '#include<math.h>'],
-    ['HAVE_FOPEN64', 'fopen64', '#include<stdio.h>'],
-    ['HAVE_FSEEKO', 'fseeko', '#include<stdio.h>'],
-    ['HAVE_FSEEKO64', 'fseeko64', '#include<stdio.h>'],
-    ['HAVE_SIGACTION', 'sigaction', '#include<signal.h>'],
-    # check token HAVE_SA_SIGACTION
-    ['HAVE_SETJMP', 'setjmp', '#include<setjmp.h>'],
-    ['HAVE_NANOSLEEP', 'nanosleep', '#include<time.h>'],
-    ['HAVE_SYSCONF', 'sysconf', '#include<unistd.h>'],
-    ['HAVE_SYSCTLBYNAME', 'sysctlbyname', '#include<sys/sysctl.h>'],
-    ['HAVE_CLOCK_GETTIME', 'clock_gettime', '#include<time.h>'],
-    ['HAVE_GETPAGESIZE', 'getpagesize', '#include<unistd.h>'],
-    ['HAVE_MPROTECT', 'mprotect', '#include<sys/mman.h>'],
-    ['HAVE_ICONV', 'iconv', '#include<iconv.h>'],
-    # check token HAVE_ICONV
-    ['HAVE_PTHREAD_SETNAME_NP', 'pthread_setname_np', '#include<pthread.h>'],
-    ['HAVE_PTHREAD_SET_NAME_NP', 'pthread_set_name_np', '#include<pthread.h>'],
-    # check token HAVE_SEM_TIMEDWAIT
-    ['HAVE_GETAUXVAL', 'getauxval', '#include<sys/auxv.h>'],
-    ['HAVE_POLL', 'poll', '#include<poll.h>'],
+    ['#include <alloca.h>', 'alloca'],
+    ['#include <iconv.h>', 'iconv'],
+    ['#include <math.h>', 'acos'],
+    ['#include <math.h>', 'acosf'],
+    ['#include <math.h>', 'asin'],
+    ['#include <math.h>', 'asinf'],
+    ['#include <math.h>', 'atan'],
+    ['#include <math.h>', 'atan2'],
+    ['#include <math.h>', 'atan2f'],
+    ['#include <math.h>', 'atanf'],
+    ['#include <math.h>', 'ceil'],
+    ['#include <math.h>', 'ceilf'],
+    ['#include <math.h>', 'copysign'],
+    ['#include <math.h>', 'copysignf'],
+    ['#include <math.h>', 'cos'],
+    ['#include <math.h>', 'cosf'],
+    ['#include <math.h>', 'exp'],
+    ['#include <math.h>', 'expf'],
+    ['#include <math.h>', 'fabs'],
+    ['#include <math.h>', 'fabsf'],
+    ['#include <math.h>', 'floor'],
+    ['#include <math.h>', 'floorf'],
+    ['#include <math.h>', 'fmod'],
+    ['#include <math.h>', 'fmodf'],
+    ['#include <math.h>', 'log'],
+    ['#include <math.h>', 'logf'],
+    ['#include <math.h>', 'pow'],
+    ['#include <math.h>', 'powf'],
+    ['#include <math.h>', 'scalbn'],
+    ['#include <math.h>', 'scalbnf'],
+    ['#include <math.h>', 'sin'],
+    ['#include <math.h>', 'sinf'],
+    ['#include <math.h>', 'sqrt'],
+    ['#include <math.h>', 'sqrtf'],
+    ['#include <math.h>', 'tan'],
+    ['#include <poll.h>', 'poll'],
+    ['#include <pthread.h>', 'pthread_set_name_np'],
+    ['#include <pthread.h>', 'pthread_setname_np'],
+    ['#include <pthread.h>\n#include <semaphore.h>', 'sem_timedwait'],
+    ['#include <setjmp.h>', 'setjmp'],
+    ['#include <signal.h>', 'sigaction'],
+    ['#include <stdio.h>', 'fopen64'],
+    ['#include <stdio.h>', 'fseeko'],
+    ['#include <stdio.h>', 'fseeko64'],
+    ['#include <stdio.h>', 'snprintf'],
+    ['#include <stdio.h>', 'sscanf'],
+    ['#include <stdio.h>', 'vsnprintf'],
+    ['#include <stdio.h>', 'vsscanf'],
+    ['#include <stdlib.h>', '_i64toa'],
+    ['#include <stdlib.h>', '_uit64toa'],
+    ['#include <stdlib.h>', '_uitoa'],
+    ['#include <stdlib.h>', '_ultoa'],
+    ['#include <stdlib.h>', 'abs'],
+    ['#include <stdlib.h>', 'atof'],
+    ['#include <stdlib.h>', 'atoi'],
+    ['#include <stdlib.h>', 'calloc'],
+    ['#include <stdlib.h>', 'free'],
+    ['#include <stdlib.h>', 'getenv'],
+    ['#include <stdlib.h>', 'itoa'],
+    ['#include <stdlib.h>', 'malloc'],
+    ['#include <stdlib.h>', 'putenv'],
+    ['#include <stdlib.h>', 'qsort'],
+    ['#include <stdlib.h>', 'realloc'],
+    ['#include <stdlib.h>', 'setenv'],
+    ['#include <stdlib.h>', 'strtod'],
+    ['#include <stdlib.h>', 'strtol'],
+    ['#include <stdlib.h>', 'strtoll'],
+    ['#include <stdlib.h>', 'strtoul'],
+    ['#include <stdlib.h>', 'strtoull'],
+    ['#include <stdlib.h>', 'unsetenv'],
+    ['#include <stlib.h>', '_ltoa'],
+    ['#include <string.h>', '_stricmp'],
+    ['#include <string.h>', '_strlwr'],
+    ['#include <string.h>', '_strnicmp'],
+    ['#include <string.h>', '_strrev'],
+    ['#include <string.h>', '_strupr'],
+    ['#include <string.h>', 'memcmp'],
+    ['#include <string.h>', 'memcpy'],
+    ['#include <string.h>', 'memmove'],
+    ['#include <string.h>', 'memset'],
+    ['#include <string.h>', 'strchr'],
+    ['#include <string.h>', 'strcmp'],
+    ['#include <string.h>', 'strdup'],
+    ['#include <string.h>', 'strlcat'],
+    ['#include <string.h>', 'strlcpy'],
+    ['#include <string.h>', 'strlen'],
+    ['#include <string.h>', 'strncmp'],
+    ['#include <string.h>', 'strrchr'],
+    ['#include <string.h>', 'strstr'],
+    ['#include <strings.h>', 'bcopy'],
+    ['#include <strings.h>', 'index'],
+    ['#include <strings.h>', 'rindex'],
+    ['#include <strings.h>', 'strcasecmp'],
+    ['#include <strings.h>', 'strncasecmp'],
+    ['#include <sys/auxv.h>', 'getauxval'],
+    ['#include <sys/mman.h>', 'mprotect'],
+    ['#include <sys/sysctl.h>', 'sysctlbyname'],
+    ['#include <time.h>', 'clock_gettime'],
+    ['#include <time.h>', 'nanosleep'],
+    ['#include <unistd.h>', 'getpagesize'],
+    ['#include <unistd.h>', 'sysconf'],
+    ['#include <wchar.h>', 'wcscmp'],
+    ['#include <wchar.h>', 'wcslcat'],
+    ['#include <wchar.h>', 'wcslcpy'],
+    ['#include <wchar.h>', 'wcslen'],
 ]
 
 foreach f : check_functions
-    if cc.has_function(f.get(1), prefix : f.get(2), dependencies : core_deps)
-        cdata.set(f.get(0), 1)
+    prefix = f[0]
+    func = f[1]
+
+    if cc.has_function(func, prefix : prefix, dependencies : core_deps)
+        cdata.set('HAVE_@0@'.format(func.underscorify().to_upper()), 1)
     endif
 endforeach
+
+if iconv_dep.found()
+    core_deps += iconv_dep
+else
+    cdata.set('HAVE_ICONV', false)
+    cdata.set('HAVE_ICONV_H', false)
+endif
+
 
 cdata.set('HAVE_LIBC', 1)
 cdata.set('HAVE_M_PI', cc.has_header_symbol('math.h', 'M_PI'))
@@ -342,61 +474,119 @@ cdata.set10('HAVE_GCC_SYNC_LOCK_TEST_AND_SET',
     )
 )
 
-cdata.set('SDL_THREAD_PTHREAD_RECURSIVE_MUTEX', 1)
+if cc.has_header_symbol('pthread.h', 'PTHREAD_MUTEX_RECURSIVE')
+    cdata.set('SDL_THREAD_PTHREAD_RECURSIVE_MUTEX', 1)
+endif
 
-cdata.set('SDL_AUDIO_DRIVER_DUMMY', 1)
-cdata.set('SDL_VIDEO_DRIVER_DUMMY', 1)
-cdata.set('SDL_JOYSTICK_DUMMY', 1)
-cdata.set('SDL_SENSOR_DUMMY', 1)
+if cc.has_member('struct sigaction', 'sa_sigaction', prefix : '#include <signal.h>')
+    cdata.set('HAVE_SA_SIGACTION', 1)
+endif
+
+sys_default_audio_driver = ['dummy']
+sys_default_filesystem = ['dummy']
+sys_default_haptic = ['dummy']
+sys_default_input = []
+sys_default_joystick = ['dummy']
+sys_default_loadso = ['dummy']
+sys_default_power = []
+sys_default_sensor = ['dummy']
+sys_default_thread = []
+sys_default_timer = ['dummy']
+sys_default_video = []
+sys_default_video_driver = ['dummy']
+sys_default_video_render = []
+
+sys_audio_driver = sys_default_audio_driver
+sys_filesystem = sys_default_filesystem
+sys_haptic = sys_default_haptic
+sys_input = sys_default_input
+sys_joystick = sys_default_joystick
+sys_loadso = sys_default_loadso
+sys_power = sys_default_power
+sys_sensor = sys_default_sensor
+sys_thread = sys_default_thread
+sys_timer = sys_default_timer
+sys_video = sys_default_video
+sys_video_driver = sys_default_video_driver
+sys_video_render = sys_default_video_render
+
+sys_gl_wsi = []
+
+modular_subsystems = [
+    'filesystem',
+    'haptic',
+    'joystick',
+    'loadso',
+    'power',
+    'sensor',
+    'video',
+]
+
+fake_subsystems = []
+fake_subsystems_map = {
+    'events'  : ['input'],
+    'audio'   : ['audio_driver'],
+    'video'   : ['video_driver'],
+    'render'  : ['video_render'],
+    'threads' : ['thread'],
+    'timers'  : ['timer'],
+}
+
+all_modular_subsystems = modular_subsystems
+
+foreach real_ss, fake_ss : fake_subsystems_map
+    if enabled_subsystems.contains(real_ss)
+        fake_subsystems += fake_ss
+    endif
+    all_modular_subsystems += fake_ss
+endforeach
+
+sys_dynamic_api = true
+
+if platform_is_unixlike
+    # Some sane defaults
+    sys_filesystem = ['unix']
+    sys_loadso = ['dlopen']
+    sys_timer = ['unix']
+    sys_thread = ['pthread']
+endif
 
 if platform_is_linux
-    cdata.set('SDL_POWER_LINUX', 1)
-    cdata.set('SDL_THREAD_PTHREAD', 1)
-    cdata.set('SDL_JOYSTICK_LINUX', 1)
-    cdata.set('SDL_INPUT_LINUXEV', 1)
-    cdata.set('SDL_INPUT_LINUXKD', 1)
-    if cdata.get('SDL_HAPTIC_DISABLED', 0) == 0
-        cdata.set('SDL_HAPTIC_LINUX', 1) endif
-    cdata.set('SDL_TIMER_UNIX', 1)
-    cdata.set('SDL_FILESYSTEM_UNIX', 1)
-    cdata.set('SDL_DYNAMIC_API', 1)
-    cdata.set('SDL_LOADSO_DLOPEN', 1)
+    sys_haptic = ['linux']
+    sys_input = ['linuxev', 'linuxkd']
+    sys_joystick = ['linux']
+    sys_power = ['linux']
 elif platform_is_windows
-    cdata.set('SDL_THREAD_WINDOWS', 1)
-    cdata.set('SDL_JOYSTICK_DINPUT', 1)
-    cdata.set('SDL_HAPTIC_DINPUT', 1)
-    cdata.set('SDL_TIMER_WINDOWS', 1)
-    cdata.set('SDL_FILESYSTEM_WINDOWS', 1)
-    cdata.set('SDL_DYNAMIC_API', 1)
-    cdata.set('SDL_POWER_WINDOWS', 1)
-    cdata.set('SDL_LOADSO_WINDOWS', 1)
-    cdata.set('SDL_VIDEO_DRIVER_WINDOWS', 1)
-    cdata.set('SDL_VIDEO_RENDER_D3D', 1)
-    cdata.set('SDL_VIDEO_RENDER_D3D11', 1)
-    cdata.set('SDL_AUDIO_DRIVER_WASAPI', 1)
-    core_deps += [
+    sys_audio_driver = ['wasapi']  # XXX: winmm needed?
+    sys_filesystem = ['windows']
+    sys_haptic = ['dinput', 'xinput']
+    sys_joystick = ['dinput', 'xinput']  # XXX: winmm needed?
+    sys_loadso = ['windows']
+    sys_power = ['windows']
+    sys_thread = ['windows']
+    sys_timer = ['windows']
+    sys_video_driver = ['windows']
+    sys_video_render = ['d3d', 'd3d11']
+    sys_gl_wsi = ['wgl']
+    extra_deps += [
+        # TODO: maybe filter this out conditionally...
+        cc.find_library('dinput8'),
+        cc.find_library('dxerr8'),
+        cc.find_library('dxguid'),
         cc.find_library('imm32'),
         cc.find_library('version'),
-        cc.find_library('wasapi'),
         cc.find_library('winmm'),
     ]
 elif platform_is_macos
-    cdata.set('SDL_POWER_MACOSX', 1)
-    cdata.set('SDL_THREAD_PTHREAD', 1)
-    cdata.set('SDL_JOYSTICK_IOKIT', 1)
-    cdata.set('SDL_HAPTIC_IOKIT', 1)
-    cdata.set('SDL_TIMER_UNIX', 1)
-    cdata.set('SDL_FILESYSTEM_UNIX', 1)
-    cdata.set('SDL_DYNAMIC_API', 1)
-    cdata.set('SDL_LOADSO_DLOPEN', 1)
-    cdata.set('SDL_VIDEO_DRIVER_COCOA', 1)
-    cdata.set('SDL_AUDIO_DRIVER_COREAUDIO', 1)
-
-    if gl_dep.found()
-        cdata.set('SDL_VIDEO_OPENGL_CGL', 1)
-    endif
-
-    core_deps += dependency('appleframeworks', modules : [
+    sys_audio_driver = ['coreaudio']
+    sys_filesystem = ['cocoa']
+    sys_gl_wsi = ['cgl']
+    sys_haptic = ['iokit']
+    sys_joystick = ['iokit']
+    sys_power = ['macosx']
+    sys_video_driver = ['cocoa']
+    extra_deps += dependency('appleframeworks', modules : [
+        # TODO: maybe filter this out conditionally...
         'CoreFoundation',
         'Foundation',
         'QuartzCore',
@@ -409,68 +599,115 @@ elif platform_is_macos
         'Carbon',
         'CoreGraphics'
     ])
+elif platform_is_emscripten
+    sys_audio_driver = ['emscripten']
+    sys_filesystem = ['emscripten']
+    sys_joystick = ['emscripten']
+    sys_power = ['emscripten']
+    sys_video_driver = ['emscripten']
+    sys_dynamic_api = false
 else
     error('Unknown platform, please add.')
 endif
 
-if gl_dep.found()
-    cdata.set('SDL_VIDEO_OPENGL', 1)
-    cdata.set('SDL_VIDEO_RENDER_OGL', 1)
+if sys_dynamic_api
+    cdata.set('SDL_DYNAMIC_API', 1)
 endif
 
-if glesv2_dep.found()
-    cdata.set('SDL_VIDEO_OPENGL_ES2', 1)
-    cdata.set('SDL_VIDEO_RENDER_OGL_ES2', 1)
+if extra_deps.contains(gl_dep)
+    sys_video += 'opengl'
+    sys_video_render += 'ogl'
 endif
 
-if egl_dep.found() and (gl_dep.found() or glesv2_dep.found())
-    cdata.set('SDL_VIDEO_OPENGL_EGL', 1)
+if extra_deps.contains(glesv2_dep)
+    sys_video += 'opengl_es2'
+    sys_video_render += 'ogl_es2'
 endif
 
-if vulkan_dep.found()
-    cdata.set('SDL_VIDEO_VULKAN', 1)
+if extra_deps.contains(egl_dep)
+    sys_video += 'opengl_egl'
 endif
 
-if x11_dep.found()
-    cdata.set('SDL_VIDEO_DRIVER_X11', 1)
+if extra_deps.contains(vulkan_dep)
+    sys_video += 'vulkan'
+endif
+
+if extra_deps.contains(x11_dep)
+    sys_video_driver += 'x11'
+    sys_gl_wsi += 'glx'
 
     # FIXME: test for this?
-    cdata.set('SDL_VIDEO_DRIVER_X11_SUPPORTS_GENERIC_EVENTS', 1)
+    sys_video_driver += 'x11_supports_generic_events'
 
-    if xi_dep.found()
-        cdata.set('SDL_VIDEO_DRIVER_X11_XINPUT2', 1)
+    if extra_deps.contains(xi_dep)
+        sys_video_driver += 'x11_xinput2'
 
         # FIXME: test for this?
-        cdata.set('SDL_VIDEO_DRIVER_X11_XINPUT2_SUPPORTS_MULTITOUCH', 1)
+        sys_video_driver += 'x11_xinput2_supports_multitouch'
     endif
 
-    if gl_dep.found() or glesv2_dep.found()
-        cdata.set('SDL_VIDEO_OPENGL_GLX', 1)
+    if extra_deps.contains(xrandr_dep)
+        sys_video_driver += 'x11_xrandr'
     endif
 
-    if xrandr_dep.found()
-        cdata.set('SDL_VIDEO_DRIVER_X11_XRANDR', 1)
-        # cdata.set('SDL_VIDEO_DRIVER_X11_DYNAMIC_XRANDR', 1)
+    if extra_deps.contains(xinerama_dep)
+        sys_video_driver += 'x11_xinerama'
     endif
 
-    if xinerama_dep.found()
-        cdata.set('SDL_VIDEO_DRIVER_X11_XINERAMA', 1)
-        # cdata.set('SDL_VIDEO_DRIVER_X11_DYNAMIC_XINERAMA', 1)
+    if cc.has_function('XkbKeycodeToKeysym', dependencies : x11_dep)
+        sys_video_driver += 'x11_has_xkbkeycodetokeysym'
     endif
 endif
 
-if wayland_found
-    cdata.set('SDL_VIDEO_DRIVER_WAYLAND', 1)
+if wayland_found and extra_deps.contains(wayland_client_dep)
+    sys_video_driver += 'wayland'
 endif
 
-if alsa_dep.found()
+if extra_deps.contains(gl_dep) or extra_deps.contains(glesv2_dep)
+    foreach wsi : sys_gl_wsi
+        sys_video += ['opengl_@0@'.format(wsi)]
+    endforeach
+endif
+
+if extra_deps.contains(alsa_dep)
     cdata.set('SDL_AUDIO_DRIVER_ALSA', 1)
-    # cdata.set('SDL_AUDIO_DRIVER_ALSA_DYNAMIC', 1)
+    sys_audio_driver += 'alsa'
 endif
 
-if libpulse_simple_dep.found()
-    cdata.set('SDL_AUDIO_DRIVER_PULSEAUDIO', 1)
+if extra_deps.contains(libpulse_simple_dep)
+    sys_audio_driver += 'pulseaudio'
 endif
+
+if get_option('use_dummies')
+    sys_audio_driver += 'dummy'
+    sys_video_driver += 'dummy'
+    sys_joystick += 'dummy'
+    sys_sensor += 'dummy'
+endif
+
+foreach ss : all_modular_subsystems
+    var_want = 'sys_@0@'.format(ss)
+    var_default = 'sys_default_@0@'.format(ss)
+
+    if not (enabled_subsystems + fake_subsystems).contains(ss)
+        set_variable(var_want, get_variable(var_default))
+    endif
+
+    dedup_list = []
+    foreach backend : get_variable(var_want)
+        if not dedup_list.contains(backend)
+            dedup_list += backend
+        endif
+    endforeach
+
+    message('@1@:  @0@'.format(', '.join(dedup_list), ss))
+
+    foreach backend : dedup_list
+        cfg_var = 'SDL_@0@_@1@'.format(ss.to_upper(), backend.to_upper())
+        cdata.set(cfg_var, 1)
+        # message('Setting @0@ to 1'.format(cfg_var))
+    endforeach
+endforeach
 
 core_inc = [include_directories('include')]
 c_sources = []
@@ -494,14 +731,6 @@ if platform_is_winrt or platform_is_haiku
     all_sources += [cxx_sources]
 endif
 
-core_deps += [
-    x11_deps,
-    wayland_deps,
-    gl_deps,
-    alsa_dep,
-    libpulse_simple_dep,
-]
-
 main_c_args = ['-Dmain=SDL_main']
 
 sdl2 = library('sdl2',
@@ -510,7 +739,8 @@ sdl2 = library('sdl2',
     implicit_include_directories : false,
     c_args : core_args,
     link_args : core_ldflags,
-    dependencies : core_deps,
+    dependencies : [core_deps, extra_deps],
+    override_options : ['c_std=none'],
     install : false,
     build_by_default : not meson.is_subproject(),
 )
@@ -525,13 +755,14 @@ sdl2main = static_library('sdl2main',
 )
 
 sdl2_dep = declare_dependency(
-    link_with : [sdl2, sdl2main],
+    link_with : sdl2,
+    link_whole : sdl2main,
     include_directories : core_inc,
     compile_args : main_c_args,
 )
 
 sdl2main_dep = declare_dependency(
-    link_with : sdl2main,
+    link_whole : sdl2main,
     include_directories : core_inc,
     compile_args : main_c_args,
 )

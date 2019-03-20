@@ -190,6 +190,25 @@
 #define HAVE_STDINT_H   1
 #endif /* HAVE_LIBC */
 
+#mesondefine HAVE_ALTIVEC_H
+#mesondefine HAVE_DBUS_DBUS_H
+#mesondefine HAVE_FCITX_FRONTEND_H
+#mesondefine HAVE_IBUS_IBUS_H
+#mesondefine HAVE_IMMINTRIN_H
+#mesondefine HAVE_LIBSAMPLERATE_H
+#mesondefine HAVE_LIBUDEV_H
+
+#mesondefine HAVE_DDRAW_H
+#mesondefine HAVE_DINPUT_H
+#mesondefine HAVE_DSOUND_H
+#mesondefine HAVE_DXGI_H
+#mesondefine HAVE_XINPUT_H
+#mesondefine HAVE_ENDPOINTVOLUME_H
+#mesondefine HAVE_MMDEVICEAPI_H
+#mesondefine HAVE_AUDIOCLIENT_H
+#mesondefine HAVE_XINPUT_GAMEPAD_EX
+#mesondefine HAVE_XINPUT_STATE_EX
+
 /* SDL internal assertion support */
 #mesondefine SDL_DEFAULT_ASSERT_LEVEL
 

@@ -1,9 +1,15 @@
 
-subdir('unix')
-subdir('android')
-subdir('linux')
-subdir('windows')
+if platform_is_unixlike
+    subdir('unix')
+endif
 
-if platform_is_winrt
-    subdir('winrt')
+if platform_is_android
+    subdir('android')
+elif platform_is_linux
+    subdir('linux')
+elif platform_is_windows
+    subdir('windows')
+    if platform_is_winrt
+        subdir('winrt')
+    endif
 endif

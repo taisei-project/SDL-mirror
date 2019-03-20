@@ -1,104 +1,137 @@
 option(
-    'enable_threads',
-    type : 'boolean',
-    value : true,
+    'use_threads',
+    type : 'feature',
     description : 'Enable threads support'
 )
 
 option(
-    'enable_atomic',
-    type : 'boolean',
-    value : true,
+    'use_atomic',
+    type : 'feature',
     description : 'Enable the Atomic subsystem'
 )
 
 option(
-    'enable_audio',
-    type : 'boolean',
-    value : true,
+    'use_audio',
+    type : 'feature',
     description : 'Enable the Audio subsystem'
 )
 
 option(
-    'enable_cpuinfo',
-    type : 'boolean',
-    value : true,
+    'use_audio_alsa',
+    type : 'feature',
+    description : 'Enable the ALSA audio driver'
+)
+
+option(
+    'use_audio_pulseaudio',
+    type : 'feature',
+    description : 'Enable the PulseAudio audio driver'
+)
+
+option(
+    'use_cpuinfo',
+    type : 'feature',
     description : 'Enable the CPU Info subsystem'
 )
 
 option(
-    'enable_events',
-    type : 'boolean',
-    value : true,
+    'use_events',
+    type : 'feature',
     description : 'Enable the Events subsystem'
 )
 
 option(
-    'enable_file',
-    type : 'boolean',
-    value : true,
+    'use_file',
+    type : 'feature',
     description : 'Enable the File subsystem'
 )
 
 option(
-    'enable_joystick',
-    type : 'boolean',
-    value : true,
+    'use_joystick',
+    type : 'feature',
     description : 'Enable the Joystick subsystem'
 )
 
 option(
-    'enable_haptic',
-    type : 'boolean',
-    value : true,
+    'use_haptic',
+    type : 'feature',
     description : 'Enable the Haptic subsystem'
 )
 
 option(
-    'enable_sensor',
-    type : 'boolean',
-    value : true,
+    'use_sensor',
+    type : 'feature',
     description : 'Enable the Sensor subsystem'
 )
 
 option(
-    'enable_loadso',
-    type : 'boolean',
-    value : true,
+    'use_loadso',
+    type : 'feature',
     description : 'Enable the Shared Object Loading subsystem'
 )
 
 option(
-    'enable_render',
-    type : 'boolean',
-    value : true,
+    'use_render',
+    type : 'feature',
     description : 'Enable the Renderer subsystem'
 )
 
 option(
-    'enable_timers',
-    type : 'boolean',
-    value : true,
+    'use_timers',
+    type : 'feature',
     description : 'Enable the Timers subsystem'
 )
 
 option(
-    'enable_video',
-    type : 'boolean',
-    value : true,
+    'use_video',
+    type : 'feature',
     description : 'Enable the Video subsystem'
 )
 
 option(
-    'enable_power',
-    type : 'boolean',
-    value : true,
+    'use_video_x11',
+    type : 'feature',
+    description : 'Enable the X11 video driver'
+)
+
+option(
+    'use_video_wayland',
+    type : 'feature',
+    description : 'Enable the Wayland video driver'
+)
+
+option(
+    'use_video_opengl',
+    type : 'feature',
+    description : 'Enable OpenGL support'
+)
+
+option(
+    'use_video_openglesv2',
+    type : 'feature',
+    description : 'Enable OpenGL ES 2.0+ support'
+)
+
+option(
+    'use_video_vulkan',
+    type : 'feature',
+    description : 'Enable Vulkan support'
+)
+
+option(
+    'use_power',
+    type : 'feature',
     description : 'Enable the Power subsystem'
 )
 
 option(
-    'enable_filesystem',
-    type : 'boolean',
-    value : true,
+    'use_filesystem',
+    type : 'feature',
     description : 'Enable the Filesystem subsystem'
+)
+
+option(
+    'use_dummies',
+    type : 'boolean',
+    description : 'Build dummy fallbacks of various subsystems'
 )

@@ -2,12 +2,10 @@ c_sources += files(
     'SDL_thread.c',
 )
 
-if not use_threads
+if sys_thread.length() == 0
     subdir('generic')
-elif platform_is_windows
-    subdir('windows')
-elif platform_is_psp
-    subdir('psp')
 else
-    subdir('pthread')
+    foreach backend : sys_thread
+        subdir(backend)
+    endforeach
 endif

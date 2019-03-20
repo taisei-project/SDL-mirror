@@ -2,8 +2,6 @@ c_sources += files(
     'SDL_timer.c',
 )
 
-subdir('windows')
-subdir('haiku')
-subdir('psp')
-subdir('unix')
-subdir('dummy')
+foreach backend : sys_timer
+    subdir(backend)
+endforeach
