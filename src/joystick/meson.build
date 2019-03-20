@@ -3,13 +3,23 @@ c_sources += files(
     'SDL_gamecontroller.c',
 )
 
-subdir('android')
-subdir('bsd')
-subdir('darwin')
 subdir('dummy')
-subdir('emscripten')
-subdir('iphoneos')
-subdir('linux')
-subdir('psp')
 subdir('steam')
-subdir('windows')
+
+if platform_is_android
+    subdir('android')
+elif platform_is_ios
+    subdir('iphoneos')
+elif platform_is_darwin
+    subdir('darwin')
+elif platform_is_linux
+    subdir('linux')
+elif platform_is_bsd
+    subdir('bsd')
+elif platform_is_emscripten
+    subdir('emscripten')
+elif platform_is_psp
+    subdir('psp')
+elif platform_is_windows
+    subdir('windows')
+endif
