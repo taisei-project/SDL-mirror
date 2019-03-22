@@ -281,7 +281,18 @@ foreach ss_name, subsystem : core_subsystems
     endif
 endforeach
 
-cc = meson.get_compiler('c')
+# sigh...
+# https://github.com/mesonbuild/meson/issues/1889
+# Let's try to cure the superproject std
+unfuck_std = '''
+#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
+#define _ISOC11_SOURCE
+#define _ISOC99_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
+#undef __STRICT_ANSI__
+'''
 
 cdata.set('SIZEOF_VOIDP', cc.sizeof('void*'))
 
