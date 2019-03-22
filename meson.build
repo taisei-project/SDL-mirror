@@ -2,6 +2,7 @@ project('sdl2', 'c',
     version : '2.0.9',
     license : 'zlib',
     meson_version : '>=0.48.0',
+    default_options : ['c_std=none'],
 )
 
 # Based on https://github.com/mesonbuild/sdl2/blob/2.0.3/meson.build
@@ -162,7 +163,6 @@ xinerama_dep = dependency('xinerama', required : opt_video_x11)
 xkbcommon_dep = dependency('xkbcommon', required : opt_video_wayland)
 xrandr_dep = dependency('xrandr', required : opt_video_x11)
 threads_dep = dependency('threads', required : opt_threads)
-iconv_dep = dependency('iconv', required : false)
 
 x11_deps = [
     x11_dep,
@@ -218,6 +218,7 @@ endif
 core_deps = [
     cc.find_library('m', required : false),
     cc.find_library('dl', required : false),
+    cc.find_library('iconv', required : false),
 ]
 
 extra_deps = []
@@ -281,7 +282,18 @@ foreach ss_name, subsystem : core_subsystems
     endif
 endforeach
 
-cc = meson.get_compiler('c')
+# sigh...
+# https://github.com/mesonbuild/meson/issues/1889
+# Let's try to cure the superproject std
+unfuck_std = '''
+#define _DEFAULT_SOURCE
+#define _GNU_SOURCE
+#define _ISOC11_SOURCE
+#define _ISOC99_SOURCE
+#define _POSIX_C_SOURCE=200809L
+#define _XOPEN_SOURCE=700
+#undef __STRICT_ANSI__
+'''
 
 cdata.set('SIZEOF_VOIDP', cc.sizeof('void*'))
 
@@ -357,6 +369,8 @@ check_functions = [
     ['#include <math.h>', 'fmod'],
     ['#include <math.h>', 'fmodf'],
     ['#include <math.h>', 'log'],
+    ['#include <math.h>', 'log10'],
+    ['#include <math.h>', 'log10f'],
     ['#include <math.h>', 'logf'],
     ['#include <math.h>', 'pow'],
     ['#include <math.h>', 'powf'],
@@ -367,6 +381,7 @@ check_functions = [
     ['#include <math.h>', 'sqrt'],
     ['#include <math.h>', 'sqrtf'],
     ['#include <math.h>', 'tan'],
+    ['#include <math.h>', 'tanf'],
     ['#include <poll.h>', 'poll'],
     ['#include <pthread.h>', 'pthread_set_name_np'],
     ['#include <pthread.h>', 'pthread_setname_np'],
@@ -440,7 +455,7 @@ check_functions = [
 ]
 
 foreach f : check_functions
-    prefix = f[0]
+    prefix = '@0@@1@'.format(unfuck_std, f[0])
     func = f[1]
 
     if cc.has_function(func, prefix : prefix, dependencies : core_deps)
@@ -448,16 +463,8 @@ foreach f : check_functions
     endif
 endforeach
 
-if iconv_dep.found()
-    core_deps += iconv_dep
-else
-    cdata.set('HAVE_ICONV', false)
-    cdata.set('HAVE_ICONV_H', false)
-endif
-
-
 cdata.set('HAVE_LIBC', 1)
-cdata.set('HAVE_M_PI', cc.has_header_symbol('math.h', 'M_PI'))
+cdata.set('HAVE_M_PI', cc.has_header_symbol('math.h', 'M_PI', prefix : unfuck_std))
 
 core_args = ['-DUSING_GENERATED_CONFIG_H']
 core_ldflags = []
@@ -474,11 +481,15 @@ cdata.set10('HAVE_GCC_SYNC_LOCK_TEST_AND_SET',
     )
 )
 
-if cc.has_header_symbol('pthread.h', 'PTHREAD_MUTEX_RECURSIVE')
+if cc.has_header_symbol('pthread.h', 'PTHREAD_MUTEX_RECURSIVE', prefix : unfuck_std)
     cdata.set('SDL_THREAD_PTHREAD_RECURSIVE_MUTEX', 1)
 endif
 
-if cc.has_member('struct sigaction', 'sa_sigaction', prefix : '#include <signal.h>')
+if cc.has_header_symbol('pthread.h', 'PTHREAD_MUTEX_RECURSIVE_NP', prefix : unfuck_std)
+    cdata.set('SDL_THREAD_PTHREAD_RECURSIVE_MUTEX_NP', 1)
+endif
+
+if cc.has_member('struct sigaction', 'sa_sigaction', prefix : '@0@#include <signal.h>'.format(unfuck_std))
     cdata.set('HAVE_SA_SIGACTION', 1)
 endif
 
