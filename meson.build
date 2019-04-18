@@ -222,6 +222,14 @@ core_deps = [
 
 extra_deps = []
 
+if meson.get_cross_property('threads_dep_is_broken', false)
+    if opt_threads.disabled()
+        threads_dep = dummy_notfound_dep
+    else
+        threads_dep = dummy_found_dep
+    endif
+endif
+
 core_subsystems = {
     'atomic'        : { 'opt' : opt_atomic,     'deps' : [], 'opt_deps' : [] },
     'audio'         : { 'opt' : opt_audio,      'deps' : [], 'opt_deps' : [alsa_dep, libpulse_simple_dep] },
@@ -264,11 +272,14 @@ foreach ss_name, subsystem : core_subsystems
     endif
 
     if ss_enabled
-        core_deps += subsystem['deps']
+        foreach dep : subsystem['deps']
+            if dep.found() and not extra_deps.contains(dep) and dep != dummy_found_dep
+                core_deps += dep
+            endif
+        endforeach
 
-        # We don't want disabled/not found deps on there
         foreach dep : subsystem['opt_deps']
-            if dep.found() and not extra_deps.contains(dep)
+            if dep.found() and not extra_deps.contains(dep) and dep != dummy_found_dep
                 extra_deps += dep
             endif
         endforeach
@@ -585,6 +596,8 @@ elif platform_is_windows
         cc.find_library('dxerr8'),
         cc.find_library('dxguid'),
         cc.find_library('imm32'),
+        cc.find_library('ole32'),
+        cc.find_library('oleaut32'),
         cc.find_library('version'),
         cc.find_library('winmm'),
     ]
