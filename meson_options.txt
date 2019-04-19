@@ -53,6 +53,18 @@ option(
 )
 
 option(
+    'use_joystick_dinput',
+    type : 'feature',
+    description : 'Enable the DirectInput joystick driver'
+)
+
+option(
+    'use_joystick_xinput',
+    type : 'feature',
+    description : 'Enable the XInput joystick driver'
+)
+
+option(
     'use_haptic',
     type : 'feature',
     description : 'Enable the Haptic subsystem'
