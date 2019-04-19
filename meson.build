@@ -581,8 +581,8 @@ if platform_is_linux
 elif platform_is_windows
     sys_audio_driver = ['wasapi']  # XXX: winmm needed?
     sys_filesystem = ['windows']
-    sys_haptic = ['dinput', 'xinput']
-    sys_joystick = ['dinput', 'xinput']  # XXX: winmm needed?
+    sys_haptic = []
+    sys_joystick = []  # XXX: winmm needed?
     sys_loadso = ['windows']
     sys_power = ['windows']
     sys_thread = ['windows']
@@ -592,7 +592,6 @@ elif platform_is_windows
     sys_gl_wsi = ['wgl']
     extra_deps += [
         # TODO: maybe filter this out conditionally...
-        cc.find_library('dinput8'),
         cc.find_library('dxerr8'),
         cc.find_library('dxguid'),
         cc.find_library('imm32'),
@@ -601,6 +600,20 @@ elif platform_is_windows
         cc.find_library('version'),
         cc.find_library('winmm'),
     ]
+
+    # XInput is loaded dynamically
+    if not get_option('use_joystick_xinput').disabled()
+        sys_joystick += 'xinput'
+        sys_haptic += 'xinput'
+    endif
+
+    dinput = cc.find_library('dinput8', required : get_option('use_joystick_dinput'))
+
+    if dinput.found()
+        extra_deps += dinput
+        sys_joystick += 'dinput'
+        sys_haptic += 'dinput'
+    endif
 elif platform_is_macos
     sys_audio_driver = ['coreaudio']
     sys_filesystem = ['cocoa']
