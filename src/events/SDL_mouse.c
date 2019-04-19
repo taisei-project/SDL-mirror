@@ -29,6 +29,11 @@
 #include "SDL_events_c.h"
 #include "../video/SDL_sysvideo.h"
 
+#ifdef __WIN32__
+#include <windows.h>
+#include <winuser.h>
+#endif
+
 /* #define DEBUG_MOUSE */
 
 /* The mouse state */

@@ -597,6 +597,7 @@ elif platform_is_windows
         cc.find_library('imm32'),
         cc.find_library('ole32'),
         cc.find_library('oleaut32'),
+        cc.find_library('user32'),
         cc.find_library('version'),
         cc.find_library('winmm'),
     ]
