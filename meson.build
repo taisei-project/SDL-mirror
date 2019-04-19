@@ -631,7 +631,7 @@ elif platform_is_macos
         'Cocoa',
         'CoreAudio',
         'CoreFoundation',
-        'CoreGraphics'
+        'CoreGraphics',
         'CoreServices',
         'ForceFeedback',
         'Foundation',
