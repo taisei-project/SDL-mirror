@@ -625,17 +625,18 @@ elif platform_is_macos
     sys_video_driver = ['cocoa']
     extra_deps += dependency('appleframeworks', modules : [
         # TODO: maybe filter this out conditionally...
-        'CoreFoundation',
-        'Foundation',
-        'QuartzCore',
-        'CoreAudio',
-        'AudioUnit',
         'AudioToolbox',
-        'ForceFeedback',
-        'IOKit',
-        'Cocoa',
+        'AudioUnit',
         'Carbon',
+        'Cocoa',
+        'CoreAudio',
+        'CoreFoundation',
         'CoreGraphics'
+        'CoreServices',
+        'ForceFeedback',
+        'Foundation',
+        'IOKit',
+        'QuartzCore',
     ])
 elif platform_is_emscripten
     sys_audio_driver = ['emscripten']
