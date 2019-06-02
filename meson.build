@@ -16,10 +16,10 @@ cc = meson.get_compiler('c')
 
 # BEGIN platform detection logic
 
-platform_is_linux = (host_machine.system() == 'linux')
 # FIXME: detect this properly
-platform_is_linux_desktop = platform_is_linux
-platform_is_android = false
+platform_is_linux_desktop = (host_machine.system() == 'linux')
+platform_is_android = (host_machine.system() == 'android')
+platform_is_linux = platform_is_android or platform_is_linux_desktop
 
 platform_is_darwin = (host_machine.system() == 'darwin')
 # FIXME: detect this properly
@@ -97,6 +97,10 @@ opt_audio_pulseaudio = get_option('use_audio_pulseaudio')
 if opt_audio.disabled()
     opt_audio_alsa = opt_audio
     opt_audio_pulseaudio = opt_audio
+endif
+
+if platform_is_android
+    opt_haptic = opt_joystick
 endif
 
 # BEGIN awful shitfucked GL hacks
@@ -349,7 +353,7 @@ check_headers = [
 ]
 
 foreach h : check_headers
-    if cc.has_header(h)
+    if cc.check_header(h)
         cdata.set('HAVE_@0@'.format(h.to_upper().underscorify()), 1)
     endif
 endforeach
@@ -573,7 +577,24 @@ if platform_is_unixlike
     sys_thread = ['pthread']
 endif
 
-if platform_is_linux
+if platform_is_android
+    sys_filesystem = ['android']
+    sys_haptic = ['android']
+    sys_input = ['android']
+    sys_joystick = ['android']
+    sys_power = ['android']
+    sys_sensor = ['android']
+    sys_audio_driver = ['android']
+    sys_video_driver = ['android']
+    sys_video_render = ['ogl_es2']
+    extra_deps += [
+        cc.find_library('android'),
+        cc.find_library('log'),
+    ]
+    if not opt_video_openglesv2.disabled()
+        extra_deps += cc.find_library('GLESv2', required : opt_video_openglesv2.enabled())
+    endif
+elif platform_is_linux
     sys_haptic = ['linux']
     sys_input = ['linuxev', 'linuxkd']
     sys_joystick = ['linux']
@@ -646,7 +667,7 @@ elif platform_is_emscripten
     sys_video_driver = ['emscripten']
     sys_dynamic_api = false
 else
-    error('Unknown platform, please add.')
+    error('Unknown platform @0@, please add.'.format(host_machine.system()))
 endif
 
 if sys_dynamic_api
