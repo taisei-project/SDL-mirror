@@ -147,3 +147,9 @@ option(
     type : 'boolean',
     description : 'Build dummy fallbacks of various subsystems'
 )
+
+option(
+    'prefer_dlopen',
+    type : 'boolean',
+    description : 'If possible, dlopen dependencies at runtime instead of linking (linux only)'
+)
