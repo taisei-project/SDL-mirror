@@ -156,6 +156,8 @@ gl_deps = [
 
 # END awful shitfucked GL hacks
 
+cdata = configuration_data()
+
 alsa_dep = dependency('alsa', required : opt_audio_alsa)
 libpulse_simple_dep = dependency('libpulse-simple', required : opt_audio_pulseaudio)
 vulkan_dep = dependency('vulkan', required : opt_video_vulkan)
@@ -165,16 +167,9 @@ xi_dep = dependency('xi', required : opt_video_x11)
 xinerama_dep = dependency('xinerama', required : opt_video_x11)
 xkbcommon_dep = dependency('xkbcommon', required : opt_video_wayland)
 xrandr_dep = dependency('xrandr', required : opt_video_x11)
+xcursor_dep = dependency('xcursor', required : opt_video_x11)
 threads_dep = dependency('threads', required : opt_threads)
 iconv_dep = dependency('iconv', required : false)
-
-x11_deps = [
-    x11_dep,
-    xext_dep,
-    xi_dep,
-    xinerama_dep,
-    xrandr_dep,
-]
 
 wayland_found = true
 
@@ -193,6 +188,50 @@ if wayland_scanner_dep.found()
 else
     wayland_scanner = find_program('wayland-scanner', required : opt_video_wayland)
 endif
+
+dlopen_table = [
+    { 'dep_var' : 'alsa_dep',            'lib' : 'asound',         'conf_var' : 'SDL_AUDIO_DRIVER_ALSA_DYNAMIC'              },
+    { 'dep_var' : 'libpulse_simple_dep', 'lib' : 'pulse-simple',   'conf_var' : 'SDL_AUDIO_DRIVER_PULSEAUDIO_DYNAMIC'        },
+    { 'dep_var' : 'wayland_client_dep',  'lib' : 'wayland-client', 'conf_var' : 'SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC'           },
+    { 'dep_var' : 'wayland_cursor_dep',  'lib' : 'wayland-cursor', 'conf_var' : 'SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_CURSOR'    },
+    { 'dep_var' : 'wayland_egl_dep',     'lib' : 'wayland-egl',    'conf_var' : 'SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_EGL'       },
+    { 'dep_var' : 'x11_dep',             'lib' : 'X11',            'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC'               },
+    { 'dep_var' : 'xcursor_dep',         'lib' : 'Xcursor',        'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC_XCURSOR'       },
+    { 'dep_var' : 'xext_dep',            'lib' : 'Xext',           'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC_XEXT'          },
+    { 'dep_var' : 'xi_dep',              'lib' : 'Xi',             'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC_XINPUT2'       },
+    { 'dep_var' : 'xinerama_dep',        'lib' : 'Xinerama',       'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC_XINERAMA'      },
+    { 'dep_var' : 'xkbcommon_dep',       'lib' : 'xkbcommon',      'conf_var' : 'SDL_VIDEO_DRIVER_WAYLAND_DYNAMIC_XKBCOMMON' },
+    { 'dep_var' : 'xrandr_dep',          'lib' : 'Xrandr',         'conf_var' : 'SDL_VIDEO_DRIVER_X11_DYNAMIC_XRANDR'        },
+]
+
+if get_option('prefer_dlopen')
+    find_dylib_name = find_program('./find-dylib-name.py')
+
+    foreach dep_entry : dlopen_table
+        dep = get_variable(dep_entry['dep_var'])
+        if dep.found()
+            r = run_command(find_dylib_name, dep_entry['lib'], cc.cmd_array())
+
+            if r.returncode() == 0
+                lib = r.stdout().strip()
+                cdata.set_quoted(dep_entry['conf_var'], lib)
+                set_variable(dep_entry['dep_var'], dep.partial_dependency(
+                    compile_args : true, includes : true, sources : true
+                ))
+                message('Configured @0@ for dynamic loading'.format(lib))
+            endif
+        endif
+    endforeach
+endif
+
+x11_deps = [
+    x11_dep,
+    xcursor_dep,
+    xext_dep,
+    xi_dep,
+    xinerama_dep,
+    xrandr_dep,
+]
 
 if wayland_scanner.found()
     wayland_deps = [
@@ -253,8 +292,6 @@ core_subsystems = {
 }
 
 enabled_subsystems = []
-
-cdata = configuration_data()
 
 foreach ss_name, subsystem : core_subsystems
     ss_enabled = true
@@ -712,6 +749,10 @@ if extra_deps.contains(x11_dep)
 
     if extra_deps.contains(xinerama_dep)
         sys_video_driver += 'x11_xinerama'
+    endif
+
+    if extra_deps.contains(xcursor_dep)
+        sys_video_driver += 'x11_xcursor'
     endif
 
     if cc.has_function('XkbKeycodeToKeysym', dependencies : x11_dep)
