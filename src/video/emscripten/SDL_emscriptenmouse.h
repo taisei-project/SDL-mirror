@@ -25,6 +25,8 @@
 
 #include "SDL_stdinc.h"
 
+#include "SDL_stdinc.h"
+
 typedef struct _Emscripten_CursorData
 {
     const char *system_cursor;
