@@ -843,8 +843,6 @@ if platform_is_winrt or platform_is_haiku
     all_sources += [cxx_sources]
 endif
 
-main_c_args = ['-Dmain=SDL_main']
-
 sdl2 = library('sdl2',
     all_sources,
     include_directories : core_inc,
@@ -857,24 +855,35 @@ sdl2 = library('sdl2',
     build_by_default : not meson.is_subproject(),
 )
 
-sdl2main = static_library('sdl2main',
-    main_sources,
-    include_directories : core_inc,
-    implicit_include_directories : false,
-    c_args : [core_args, main_c_args],
-    install : false,
-    build_by_default : not meson.is_subproject(),
-)
+use_sdl2main = not sdl2main_is_dummy
 
-sdl2_dep = declare_dependency(
-    link_with : sdl2,
-    link_whole : sdl2main,
-    include_directories : core_inc,
-    compile_args : main_c_args,
-)
+if use_sdl2main
+    main_c_args = ['-Dmain=SDL_main']
 
-sdl2main_dep = declare_dependency(
-    link_whole : sdl2main,
-    include_directories : core_inc,
-    compile_args : main_c_args,
-)
+    sdl2main = static_library('sdl2main',
+        main_sources,
+        include_directories : core_inc,
+        implicit_include_directories : false,
+        c_args : [core_args, main_c_args],
+        install : false,
+        build_by_default : not meson.is_subproject(),
+    )
+
+    sdl2_dep = declare_dependency(
+        link_with : sdl2,
+        link_whole : sdl2main,
+        include_directories : core_inc,
+        compile_args : main_c_args,
+    )
+
+    sdl2main_dep = declare_dependency(
+        link_whole : sdl2main,
+        include_directories : core_inc,
+        compile_args : main_c_args,
+    )
+else
+    sdl2_dep = declare_dependency(
+        link_with : sdl2,
+        include_directories : core_inc,
+    )
+endif

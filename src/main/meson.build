@@ -1,4 +1,6 @@
 
+sdl2main_is_dummy = false
+
 if platform_is_haiku
     subdir('haiku')
 elif platform_is_nacl
@@ -10,5 +12,6 @@ elif platform_is_winrt
 elif platform_is_windows
     subdir('windows')
 else
+    sdl2main_is_dummy = true
     subdir('dummy')
 endif
