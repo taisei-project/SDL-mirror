@@ -662,6 +662,7 @@ elif platform_is_windows
         # TODO: maybe filter this out conditionally...
         cc.find_library('dxerr8'),
         cc.find_library('dxguid'),
+        cc.find_library('gdi32'),
         cc.find_library('imm32'),
         cc.find_library('ole32'),
         cc.find_library('oleaut32'),
