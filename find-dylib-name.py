@@ -18,8 +18,8 @@ def main(argv):
     verbose('Looking for', libname)
     verbose('cc:', cc)
 
-    o = subprocess.run(cc + ['-print-search-dirs'], check=True, capture_output=True, encoding='utf8')
-    libdirs = re.search(r'[\^\n]libraries: =(.*)', o.stdout)[1].strip().split(os.pathsep)
+    o = subprocess.run(cc + ['-print-search-dirs'], check=True, capture_output=True)
+    libdirs = re.search(r'[\^\n]libraries: =(.*)', o.stdout.decode('utf-8'))[1].strip().split(os.pathsep)
 
     verbose('Search path:\n\t' + '\n\t'.join(libdirs))
 
