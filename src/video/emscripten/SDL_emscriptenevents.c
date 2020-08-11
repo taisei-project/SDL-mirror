@@ -103,10 +103,10 @@ static const SDL_Scancode emscripten_scancode_table[] = {
     /*  57 */   SDL_SCANCODE_9,
     /*  58 */   SDL_SCANCODE_UNKNOWN,
     /*  59 */   SDL_SCANCODE_SEMICOLON,
-    /*  60 */   SDL_SCANCODE_UNKNOWN,
+    /*  60 */   SDL_SCANCODE_NONUSBACKSLASH,
     /*  61 */   SDL_SCANCODE_EQUALS,
     /*  62 */   SDL_SCANCODE_UNKNOWN,
-    /*  63 */   SDL_SCANCODE_UNKNOWN,
+    /*  63 */   SDL_SCANCODE_MINUS,
     /*  64 */   SDL_SCANCODE_UNKNOWN,
     /*  65 */   SDL_SCANCODE_A,
     /*  66 */   SDL_SCANCODE_B,
@@ -203,10 +203,10 @@ static const SDL_Scancode emscripten_scancode_table[] = {
     /* 157 */   SDL_SCANCODE_UNKNOWN,
     /* 158 */   SDL_SCANCODE_UNKNOWN,
     /* 159 */   SDL_SCANCODE_UNKNOWN,
-    /* 160 */   SDL_SCANCODE_UNKNOWN,
+    /* 160 */   SDL_SCANCODE_GRAVE,
     /* 161 */   SDL_SCANCODE_UNKNOWN,
     /* 162 */   SDL_SCANCODE_UNKNOWN,
-    /* 163 */   SDL_SCANCODE_KP_HASH, /*KaiOS phone keypad*/
+    /* 163 */   SDL_SCANCODE_BACKSLASH,
     /* 164 */   SDL_SCANCODE_UNKNOWN,
     /* 165 */   SDL_SCANCODE_UNKNOWN,
     /* 166 */   SDL_SCANCODE_UNKNOWN,
@@ -214,7 +214,7 @@ static const SDL_Scancode emscripten_scancode_table[] = {
     /* 168 */   SDL_SCANCODE_UNKNOWN,
     /* 169 */   SDL_SCANCODE_UNKNOWN,
     /* 170 */   SDL_SCANCODE_KP_MULTIPLY, /*KaiOS phone keypad*/
-    /* 171 */   SDL_SCANCODE_UNKNOWN,
+    /* 171 */   SDL_SCANCODE_RIGHTBRACKET,
     /* 172 */   SDL_SCANCODE_UNKNOWN,
     /* 173 */   SDL_SCANCODE_MINUS, /*FX*/
     /* 174 */   SDL_SCANCODE_VOLUMEDOWN, /*IE, Chrome*/
@@ -566,7 +566,10 @@ Emscripten_HandleKey(int eventType, const EmscriptenKeyboardEvent *keyEvent, voi
                  keyEvent->keyCode == 37 /* left */ ||
                  keyEvent->keyCode == 38 /* up */ ||
                  keyEvent->keyCode == 39 /* right */ ||
-                 keyEvent->keyCode == 40 /* down */;
+                 keyEvent->keyCode == 40 /* down */ ||
+                 (keyEvent->keyCode >= 112 && keyEvent->keyCode <= 135) /* F keys*/ ||
+                 keyEvent->ctrlKey ||
+                 keyEvent->altKey;
 
     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN && SDL_GetEventState(SDL_TEXTINPUT) == SDL_ENABLE && !is_nav_key)
         prevent_default = SDL_FALSE;
