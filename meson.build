@@ -160,6 +160,7 @@ endif
 # we don't want to link against these!
 gl_dep = gl_dep.partial_dependency(compile_args : true, includes : true, sources : true)
 glesv2_dep = glesv2_dep.partial_dependency(compile_args : true, includes : true, sources : true)
+egl_dep = egl_dep.partial_dependency(compile_args : true, includes : true, sources : true)
 
 gl_deps = [
     egl_dep,
