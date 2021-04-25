@@ -158,10 +158,14 @@ if not egl_dep.found() and not opt_video_openglesv2.disabled()
 endif
 
 # we don't want to link against these!
-gl_deps = []
-foreach dep : [gl_dep, glesv2_dep, egl_dep]
-    gl_deps += dep.partial_dependency(compile_args : true, includes : true, sources : true)
-endforeach
+gl_dep = gl_dep.partial_dependency(compile_args : true, includes : true, sources : true)
+glesv2_dep = glesv2_dep.partial_dependency(compile_args : true, includes : true, sources : true)
+
+gl_deps = [
+    egl_dep,
+    gl_dep,
+    glesv2_dep,
+]
 
 # END awful shitfucked GL hacks
 
